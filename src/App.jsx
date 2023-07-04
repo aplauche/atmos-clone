@@ -1,5 +1,6 @@
 import { ScrollControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
+import { EffectComposer, Noise } from "@react-three/postprocessing";
 import Background from "./components/Background";
 import { Experience } from "./components/Experience";
 
@@ -7,11 +8,13 @@ function App() {
   return (
     <>
       <Canvas>
-        <Background />
         <color attach="background" args={["#ececec"]} />
-        <ScrollControls pages={50} damping={1}>
+        <ScrollControls pages={20} damping={0.5}>
           <Experience />
         </ScrollControls>
+        <EffectComposer>
+          <Noise opacity={0.125} />
+        </EffectComposer>
       </Canvas>
     </>
   );

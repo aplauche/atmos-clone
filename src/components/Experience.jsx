@@ -1,12 +1,15 @@
-import { Cloud, Float, OrbitControls, PerspectiveCamera, Text, useScroll } from "@react-three/drei";
-import { useMemo, useRef } from "react";
+import { Float, OrbitControls, PerspectiveCamera, Text, useScroll } from "@react-three/drei";
+import { useLayoutEffect, useMemo, useRef } from "react";
 import { Airplane } from "./Airplane";
 import Background from "./Background";
 
 import * as THREE from 'three'
 import { useFrame } from "@react-three/fiber";
-import { Group } from "three";
-
+import { Euler, Group, Vector3 } from "three";
+import TextSection from "./TextSection";
+import gsap from "gsap";
+import { Cloud } from "./Cloud";
+import { fadeOnBeforeCompile } from "../utils/fadeMaterial";
 
 const LINE_NB_POINTS = 1000;
 
@@ -14,14 +17,15 @@ const CURVE_DISTANCE = 250;
 const CURVE_AHEAD_CAMERA = 0.008;
 const CURVE_AHEAD_AIRPLANE = 0.02;
 const AIRPLANE_MAX_ANGLE = 35;
+const PROXIMITY_EFFECT_DISTANCE = 42
 
 export const Experience = () => {
 
   const airplane = useRef()
   const cameraGroup = useRef()
 
-  const curve = useMemo(() => {
-    return new THREE.CatmullRomCurve3([
+  const curvePoints = useMemo(() => {
+    return [
       new THREE.Vector3(0, 0, 0),
       new THREE.Vector3(0, 0, -CURVE_DISTANCE),
       new THREE.Vector3(100, 0, -2 * CURVE_DISTANCE),
@@ -30,7 +34,241 @@ export const Experience = () => {
       new THREE.Vector3(0, 0, -5 * CURVE_DISTANCE),
       new THREE.Vector3(0, 0, -6 * CURVE_DISTANCE),
       new THREE.Vector3(0, 0, -7 * CURVE_DISTANCE),
+    ]
+  }, []) 
+
+  const textSections = useMemo(() => {
+    return [
+      {
+        cameraRailDist: -1,
+        position: new Vector3(
+          curvePoints[1].x - 3,
+          curvePoints[1].y,
+          curvePoints[1].z
+        ),
+        subtitle: `Welcome to Wawatmos,
+Have a seat and enjoy the ride!`,
+      },
+      {
+        cameraRailDist: 1.5,
+        position: new Vector3(
+          curvePoints[2].x + 2,
+          curvePoints[2].y,
+          curvePoints[2].z
+        ),
+        title: "Services",
+        subtitle: `Do you want a drink?
+We have a wide range of beverages!`,
+      },
+      {
+        cameraRailDist: -1,
+        position: new Vector3(
+          curvePoints[3].x - 3,
+          curvePoints[3].y,
+          curvePoints[3].z
+        ),
+        title: "Fear of flying?",
+        subtitle: `Our flight attendants will help you have a great journey`,
+      },
+      {
+        cameraRailDist: 1.5,
+        position: new Vector3(
+          curvePoints[4].x + 3.5,
+          curvePoints[4].y,
+          curvePoints[4].z - 12
+        ),
+        title: "Movies",
+        subtitle: `We provide a large selection of medias, we highly recommend you Porco Rosso during the flight`,
+      },
+    ];
+  }, []);
+
+  const clouds = useMemo(
+    () => [
+      // STARTING
+      {
+        position: new Vector3(-3.5, -3.2, -7),
+      },
+      {
+        position: new Vector3(3.5, -4, -10),
+      },
+      {
+        scale: new Vector3(4, 4, 4),
+        position: new Vector3(-18, 0.2, -68),
+        rotation: new Euler(-Math.PI / 5, Math.PI / 6, 0),
+      },
+      {
+        scale: new Vector3(2.5, 2.5, 2.5),
+        position: new Vector3(10, -1.2, -52),
+      },
+      // FIRST POINT
+      {
+        scale: new Vector3(4, 4, 4),
+        position: new Vector3(
+          curvePoints[1].x + 10,
+          curvePoints[1].y - 4,
+          curvePoints[1].z + 64
+        ),
+      },
+      {
+        scale: new Vector3(3, 3, 3),
+        position: new Vector3(
+          curvePoints[1].x - 20,
+          curvePoints[1].y + 4,
+          curvePoints[1].z + 28
+        ),
+        rotation: new Euler(0, Math.PI / 7, 0),
+      },
+      {
+        rotation: new Euler(0, Math.PI / 7, Math.PI / 5),
+        scale: new Vector3(5, 5, 5),
+        position: new Vector3(
+          curvePoints[1].x - 13,
+          curvePoints[1].y + 4,
+          curvePoints[1].z - 62
+        ),
+      },
+      {
+        rotation: new Euler(Math.PI / 2, Math.PI / 2, Math.PI / 3),
+        scale: new Vector3(5, 5, 5),
+        position: new Vector3(
+          curvePoints[1].x + 54,
+          curvePoints[1].y + 2,
+          curvePoints[1].z - 82
+        ),
+      },
+      {
+        scale: new Vector3(5, 5, 5),
+        position: new Vector3(
+          curvePoints[1].x + 8,
+          curvePoints[1].y - 14,
+          curvePoints[1].z - 22
+        ),
+      },
+      // SECOND POINT
+      {
+        scale: new Vector3(3, 3, 3),
+        position: new Vector3(
+          curvePoints[2].x + 6,
+          curvePoints[2].y - 7,
+          curvePoints[2].z + 50
+        ),
+      },
+      {
+        scale: new Vector3(2, 2, 2),
+        position: new Vector3(
+          curvePoints[2].x - 2,
+          curvePoints[2].y + 4,
+          curvePoints[2].z - 26
+        ),
+      },
+      {
+        scale: new Vector3(4, 4, 4),
+        position: new Vector3(
+          curvePoints[2].x + 12,
+          curvePoints[2].y + 1,
+          curvePoints[2].z - 86
+        ),
+        rotation: new Euler(Math.PI / 4, 0, Math.PI / 3),
+      },
+      // THIRD POINT
+      {
+        scale: new Vector3(3, 3, 3),
+        position: new Vector3(
+          curvePoints[3].x + 3,
+          curvePoints[3].y - 10,
+          curvePoints[3].z + 50
+        ),
+      },
+      {
+        scale: new Vector3(3, 3, 3),
+        position: new Vector3(
+          curvePoints[3].x - 10,
+          curvePoints[3].y,
+          curvePoints[3].z + 30
+        ),
+        rotation: new Euler(Math.PI / 4, 0, Math.PI / 5),
+      },
+      {
+        scale: new Vector3(4, 4, 4),
+        position: new Vector3(
+          curvePoints[3].x - 20,
+          curvePoints[3].y - 5,
+          curvePoints[3].z - 8
+        ),
+        rotation: new Euler(Math.PI, 0, Math.PI / 5),
+      },
+      {
+        scale: new Vector3(5, 5, 5),
+        position: new Vector3(
+          curvePoints[3].x + 0,
+          curvePoints[3].y - 5,
+          curvePoints[3].z - 98
+        ),
+        rotation: new Euler(0, Math.PI / 3, 0),
+      },
+      // FOURTH POINT
+      {
+        scale: new Vector3(2, 2, 2),
+        position: new Vector3(
+          curvePoints[4].x + 3,
+          curvePoints[4].y - 10,
+          curvePoints[4].z + 2
+        ),
+      },
+      {
+        scale: new Vector3(3, 3, 3),
+        position: new Vector3(
+          curvePoints[4].x + 24,
+          curvePoints[4].y - 6,
+          curvePoints[4].z - 42
+        ),
+        rotation: new Euler(Math.PI / 4, 0, Math.PI / 5),
+      },
+      {
+        scale: new Vector3(3, 3, 3),
+        position: new Vector3(
+          curvePoints[4].x - 4,
+          curvePoints[4].y + 9,
+          curvePoints[4].z - 62
+        ),
+        rotation: new Euler(Math.PI / 3, 0, Math.PI / 3),
+      },
+      // FINAL
+      {
+        scale: new Vector3(3, 3, 3),
+        position: new Vector3(
+          curvePoints[7].x + 12,
+          curvePoints[7].y - 5,
+          curvePoints[7].z + 60
+        ),
+        rotation: new Euler(-Math.PI / 4, -Math.PI / 6, 0),
+      },
+      {
+        scale: new Vector3(3, 3, 3),
+        position: new Vector3(
+          curvePoints[7].x - 12,
+          curvePoints[7].y + 5,
+          curvePoints[7].z + 120
+        ),
+        rotation: new Euler(Math.PI / 4, Math.PI / 6, 0),
+      },
+      {
+        scale: new Vector3(4, 4, 4),
+        position: new Vector3(
+          curvePoints[7].x,
+          curvePoints[7].y,
+          curvePoints[7].z
+        ),
+        rotation: new Euler(0, 0, 0),
+      },
     ],
+    []
+  );
+
+  const curve = useMemo(() => {
+    return new THREE.CatmullRomCurve3(
+    curvePoints,
     false,
     "catmullrom",
     0.5)
@@ -52,20 +290,59 @@ export const Experience = () => {
 
 
   const scroll = useScroll()
+  const cameraRail = useRef()
+  const lastScroll = useRef(0)
 
   useFrame((state, delta) => {
     // get the index of point closest to scroll %
 
     const scrollOffset = Math.max(0, scroll.offset)
 
+    // varaible to track if we are in a proximity effect zone
+    let resetCameraRail = true;
+    let friction = 1;
+
+    // check out distance to text sections
+    textSections.forEach(textSection => {
+      const distance = textSection.position.distanceTo(cameraGroup.current.position)
+
+      if(distance < PROXIMITY_EFFECT_DISTANCE){
+        friction = Math.max(distance /  PROXIMITY_EFFECT_DISTANCE, 0.1);
+        // slide camera
+        const targetCameraRailPosition = new Vector3((1 - distance / PROXIMITY_EFFECT_DISTANCE) * textSection.cameraRailDist, 0, 0);
+        cameraRail.current.position.lerp(targetCameraRailPosition, delta);
+        resetCameraRail = false;
+      }
+    })
+
+    // if the previuos proximity effect has not run then we lerp back to normal path
+    if (resetCameraRail) {
+      const targetCameraRailPosition = new Vector3(0, 0, 0);
+      cameraRail.current.position.lerp(targetCameraRailPosition, delta);
+    }
+
+    // CALCULATE LERPED SCROLL OFFSET
+    let lerpedScrollOffset = THREE.MathUtils.lerp(
+      lastScroll.current,
+      scrollOffset,
+      delta * friction
+    );
+    // PROTECT BELOW 0 AND ABOVE 1
+    lerpedScrollOffset = Math.min(lerpedScrollOffset, 1);
+    lerpedScrollOffset = Math.max(lerpedScrollOffset, 0);
+
+    // update last scroll
+    lastScroll.current = lerpedScrollOffset;
+    tl.current.seek(lerpedScrollOffset * tl.current.duration());
+
     // select the actual point from the index
-    const curPoint = curve.getPoint(scrollOffset);
+    const curPoint = curve.getPoint(lerpedScrollOffset);
 
     // Move the whole group to the point that corresponds with scroll pos 
     cameraGroup.current.position.lerp(curPoint, delta * 15) // default 24
 
     // get our point to look ahead at ()
-    const lookAtPoint = curve.getPoint(Math.min(scrollOffset + CURVE_AHEAD_CAMERA, 1));
+    const lookAtPoint = curve.getPoint(Math.min(lerpedScrollOffset + CURVE_AHEAD_CAMERA, 1));
 
     // get current look at direction
     const currentLookAt = cameraGroup.current.getWorldDirection(
@@ -96,6 +373,7 @@ export const Experience = () => {
     let angle = Math.atan2(-tangent.z, tangent.x);
     angle = -Math.PI / 2 + angle;
 
+    // convert to degrees to manipulate
     let angleDegrees = (angle * 180) / Math.PI;
     angleDegrees *= 2.4; // stronger angle
 
@@ -107,7 +385,7 @@ export const Experience = () => {
       angleDegrees = Math.min(angleDegrees, AIRPLANE_MAX_ANGLE);
     }
 
-    // SET BACK ANGLE
+    // SET angle back to radians
     angle = (angleDegrees * Math.PI) / 180;
 
     const targetAirplaneQuaternion = new THREE.Quaternion().setFromEuler(
@@ -118,42 +396,39 @@ export const Experience = () => {
       )
     );
     airplane.current.quaternion.slerp(targetAirplaneQuaternion, delta * 2);
-
-    // calculate difference side to side moving along line
-    //const xDisplacement = (lookAtPoint.x - curPoint.x) * 80
-
-    // rotate plane left or right base on next point
-    // Math.PI / 2 -> LEFT
-    // -Math.PI / 2 -> RIGHT
-
-    // generate angle with Math.PI /3 as the max angle even if displacement is bigger
-    //const angleRotation = (xDisplacement < 0 ? 1 : -1) * Math.min(Math.abs(xDisplacement), Math.PI / 3);
- 
-    // rotations cant be lerped so we have to transform to Quarternion
-    //const targetAirplaneQuaternion = new THREE.Quaternion().setFromEuler(
-    //   new THREE.Euler(
-    //     airplane.current.rotation.x,
-    //     airplane.current.rotation.y,
-    //     angleRotation * 1.5 // scale up to make this more dramatic
-    //   )
-    // );
-
-    // we can use same logic to rotate camera left/right
-    // const targetCameraQuaternion = new THREE.Quaternion().setFromEuler(
-    //   new THREE.Euler(
-    //     cameraGroup.current.rotation.x,
-    //     angleRotation,
-    //     cameraGroup.current.rotation.z
-    //   )
-    // );
-
-    // airplane.current.quaternion.slerp(targetAirplaneQuaternion, delta * 5); // default 2
-
-    // cameraGroup.current.quaternion.slerp(targetCameraQuaternion, delta * 5); // default 2
-
  
   })
 
+
+  // GSAP EFFECTS
+
+  const tl = useRef();
+  const backgroundColors = useRef({
+    colorA: "#3535cc",
+    colorB: "#abaadd",
+  });
+
+  useLayoutEffect(() => {
+    tl.current = gsap.timeline();
+
+    tl.current.to(backgroundColors.current, {
+      duration: 1,
+      colorA: "#6f35cc",
+      colorB: "#ffad30",
+    });
+    tl.current.to(backgroundColors.current, {
+      duration: 1,
+      colorA: "#424242",
+      colorB: "#ffcc00",
+    });
+    tl.current.to(backgroundColors.current, {
+      duration: 1,
+      colorA: "#81318b",
+      colorB: "#55ab8f",
+    });
+
+    tl.current.pause();
+  }, []);
 
   return (
     <>
@@ -161,8 +436,10 @@ export const Experience = () => {
       {/* <Cloud /> */}
       <directionalLight position={[0,3,1]} intensity={0.2} />
       <group ref={cameraGroup}>
-        <Background />
-        <PerspectiveCamera position={[0, 0, 5]} fov={30} makeDefault />
+        <Background backgroundColors={backgroundColors} />
+        <group ref={cameraRail}>
+          <PerspectiveCamera position={[0, 0, 5]} fov={30} makeDefault />
+        </group>
         <group ref={airplane}>
           <Float floatIntensity={1} speed={1.5} rotationIntensity={0.5}>
             <Airplane
@@ -174,44 +451,9 @@ export const Experience = () => {
         </group>
       </group>
       {/* TEXT */}
-      <group position={[-3, 0, -100]}>
-        <Text
-          color="white"
-          anchorX={"left"}
-          anchorY="middle"
-          fontSize={0.22}
-          maxWidth={2.5}
-          font={"./fonts/Inter-Regular.ttf"}
-        >
-          Welcome to Wawatmos!{"\n"}
-          Have a seat and enjoy the ride!
-        </Text>
-      </group>
-
-      <group position={[-10, 1, -200]}>
-        <Text
-          color="white"
-          anchorX={"left"}
-          anchorY="center"
-          fontSize={0.52}
-          maxWidth={2.5}
-          font={"./fonts/DMSerifDisplay-Regular.ttf"}
-        >
-          Services
-        </Text>
-        <Text
-          color="white"
-          anchorX={"left"}
-          anchorY="top"
-          position-y={-0.66}
-          fontSize={0.22}
-          maxWidth={2.5}
-          font={"./fonts/Inter-Regular.ttf"}
-        >
-          Do you want a drink?{"\n"}
-          We have a wide range of beverages!
-        </Text>
-      </group>
+      {textSections.map((textSection, idx) => (
+        <TextSection {...textSection} key={idx} />
+      ))}
       {/* LINE */}
       <group position-y={-2}>
         <mesh>
@@ -225,29 +467,17 @@ export const Experience = () => {
               },
             ]}
           />
-          <meshStandardMaterial color={"white"} opacity={1} transparent />
+          <meshStandardMaterial color={"white"} opacity={1} transparent onBeforeCompile={fadeOnBeforeCompile} />
         </mesh>
       </group>
 
 
 
-            {/* CLOUDS */}
-            <Cloud scale={[1, 1, 1.5]} position={[-3.5, -1.2, -7]} />
-      <Cloud scale={[1, 1, 2]} position={[3.5, -1, -10]} rotation-y={Math.PI} />
-      <Cloud
-        scale={[1, 1, 1]}
-        position={[-3.5, 0.2, -12]}
-        rotation-y={Math.PI / 3}
-      />
-      <Cloud scale={[1, 1, 1]} position={[3.5, 0.2, -12]} />
+      {/* CLOUDS */}
+      {clouds.map((cloud, index) => (
+        <Cloud {...cloud} key={index} />
+      ))}
 
-      <Cloud
-        scale={[0.4, 0.4, 0.4]}
-        rotation-y={Math.PI / 9}
-        position={[1, -0.2, -12]}
-      />
-      <Cloud scale={[0.3, 0.5, 2]} position={[-4, -0.5, -53]} />
-      <Cloud scale={[0.8, 0.8, 0.8]} position={[-1, -1.5, -100]} />
 
     </>
   );
