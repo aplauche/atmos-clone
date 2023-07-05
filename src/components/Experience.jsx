@@ -1,5 +1,5 @@
 import { Float, OrbitControls, PerspectiveCamera, Text, useScroll } from "@react-three/drei";
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { Airplane } from "./Airplane";
 import Background from "./Background";
 
@@ -10,6 +10,7 @@ import TextSection from "./TextSection";
 import gsap from "gsap";
 import { Cloud } from "./Cloud";
 import { fadeOnBeforeCompile } from "../utils/fadeMaterial";
+import { usePlay } from "../contexts/Play";
 
 const LINE_NB_POINTS = 1000;
 
@@ -23,6 +24,11 @@ export const Experience = () => {
 
   const airplane = useRef()
   const cameraGroup = useRef()
+  const camera = useRef();
+
+  const {play, setPlay,hasScroll, setHasScroll, setEnd} = usePlay()
+
+  const sceneOpacity = useRef(0)
 
   const curvePoints = useMemo(() => {
     return [
@@ -253,15 +259,6 @@ We have a wide range of beverages!`,
         ),
         rotation: new Euler(Math.PI / 4, Math.PI / 6, 0),
       },
-      {
-        scale: new Vector3(4, 4, 4),
-        position: new Vector3(
-          curvePoints[7].x,
-          curvePoints[7].y,
-          curvePoints[7].z
-        ),
-        rotation: new Euler(0, 0, 0),
-      },
     ],
     []
   );
@@ -294,7 +291,22 @@ We have a wide range of beverages!`,
   const lastScroll = useRef(0)
 
   useFrame((state, delta) => {
+
+    if (window.innerWidth > window.innerHeight) {
+      // LANDSCAPE
+      camera.current.fov = 30;
+      camera.current.position.z = 5;
+    } else {
+      // PORTRAIT
+      camera.current.fov = 80;
+      camera.current.position.z = 2;
+    }
+
     // get the index of point closest to scroll %
+
+    if(lastScroll.current <= 0 && scroll.offset > 0){
+      setHasScroll(true)
+    }
 
     const scrollOffset = Math.max(0, scroll.offset)
 
@@ -396,6 +408,14 @@ We have a wide range of beverages!`,
       )
     );
     airplane.current.quaternion.slerp(targetAirplaneQuaternion, delta * 2);
+
+    if (
+      cameraGroup.current.position.z <
+      curvePoints[curvePoints.length - 1].z + 100
+    ) {
+      setEnd(true);
+      planeOutTl.current.play();
+    }
  
   })
 
@@ -407,6 +427,9 @@ We have a wide range of beverages!`,
     colorA: "#3535cc",
     colorB: "#abaadd",
   });
+
+  const planeTl = useRef()
+  const planeOutTl = useRef();
 
   useLayoutEffect(() => {
     tl.current = gsap.timeline();
@@ -428,7 +451,49 @@ We have a wide range of beverages!`,
     });
 
     tl.current.pause();
+
+    planeTl.current = gsap.timeline()
+
+    planeTl.current.pause()
+    planeTl.current.from(airplane.current.position, {
+      duration: 5,
+      z: 5,
+      y: -2
+    })
+
+
+    planeOutTl.current = gsap.timeline();
+    planeOutTl.current.pause();
+
+    planeOutTl.current.to(
+      airplane.current.position,
+      {
+        duration: 10,
+        z: -250,
+        y: 10,
+      },
+      0
+    );
+    planeOutTl.current.to(
+      cameraRail.current.position,
+      {
+        duration: 8,
+        y: 12,
+      },
+      0
+    );
+    planeOutTl.current.to(airplane.current.position, {
+      duration: 1,
+      z: -1000,
+    });
+
   }, []);
+
+  useEffect(() => {
+    if(play){
+      planeTl.current.play()
+    }
+  }, [play])
 
   return (
     <>
@@ -438,7 +503,7 @@ We have a wide range of beverages!`,
       <group ref={cameraGroup}>
         <Background backgroundColors={backgroundColors} />
         <group ref={cameraRail}>
-          <PerspectiveCamera position={[0, 0, 5]} fov={30} makeDefault />
+          <PerspectiveCamera ref={camera} position={[0, 0, 5]} fov={30} makeDefault />
         </group>
         <group ref={airplane}>
           <Float floatIntensity={1} speed={1.5} rotationIntensity={0.5}>
